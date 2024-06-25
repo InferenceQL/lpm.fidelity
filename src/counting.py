@@ -45,7 +45,7 @@ def normalize_count(column):
     return {k: v / len(column) for k, v in pl.Series(column).value_counts().rows()}
 
 
-def normalize_count_bivariate(column_1, column_2):
+def normalize_count_bivariate(column_1, column_2, overlap_required=True):
     """
     Count occurences of events between two categorical columns.
     This works on Polars'columns i.e. Polars Series.
@@ -53,6 +53,8 @@ def normalize_count_bivariate(column_1, column_2):
     Parameters:
     - column_1 (List or Polars Series):  A column in a dataframe.
     - column_2 (List or Polars Series):  Another column in a dataframe.
+    - overlap_required bool:  If the two columns don't have non-null overlap,
+                              throw error
 
     Returns:
     - dict: A Python dictionary, where keys are typles of categories from the
@@ -73,7 +75,8 @@ def normalize_count_bivariate(column_1, column_2):
     column_values = [
         vals for vals in zip(column_1, column_2) if not _is_none_or_nan_bivariate(vals)
     ]
-    assert len(column_values) > 0, "no overlap"
+    if overlap_required:
+        assert len(column_values) > 0, "no overlap"
     counter = Counter(column_values)
     # Note that Polars doesn't like to count tuples.
     return {k: v / len(column_values) for k, v in dict(counter).items()}

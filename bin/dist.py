@@ -30,6 +30,12 @@ def main():
         default=False,
         help="compute bivariate distance metrics",
     )
+    parser.add_argument(
+        "--no-overlap",
+        action="store_false",
+        default=True,
+        help="Throw error if we're assessing two columns that have no overlap - i.e. are never observed together.",
+    )
 
     args = parser.parse_args()
 
@@ -38,7 +44,10 @@ def main():
 
     if args.bivariate:
         result = bivariate_distances_in_data(
-            df_a, df_b, distance_metric=args.main_metric
+            df_a,
+            df_b,
+            distance_metric=args.main_metric,
+            overlap_required=args.no_overlap,
         )
     else:
         result = univariate_distances_in_data(
