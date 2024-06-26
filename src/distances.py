@@ -33,7 +33,11 @@ def tvd(P, Q):
     return 0.5 * sum([np.abs(p - q) for p, q in zip(P, Q)])
 
 
-def _distance_from_maps(ps_a, ps_b, distance_metric):
+def _distance_from_maps(ps_a, ps_b, distance_metric, overlap_required=True):
+    # If we don't require overlap between columns, return 0 if one map is empty
+    if not overlap_required:
+        if (not ps_a) or (not ps_b):
+            return None
     ps_a, ps_b = harmonize_categorical_probabilities(ps_a, ps_b)
     # The previous line ensures that the keys are the same. So the following
     # is safe to do.
@@ -125,7 +129,12 @@ def univariate_distances_in_data(df_a, df_b, distance_metric="tvd"):
 
 
 def bivariate_distance(
-    column_a_1, column_a_2, column_b_1, column_b_2, distance_metric="tvd"
+    column_a_1,
+    column_a_2,
+    column_b_1,
+    column_b_2,
+    distance_metric="tvd",
+    overlap_required=True,
 ):
     """
     Compute a set of distance metric for a pair of columns
@@ -137,6 +146,8 @@ def bivariate_distance(
     - column_b_2 (List or Polars Series):  Another column in dataframe b
     - distance_metric (str): Choose a distance metric. One of
                               "tvd", "kl", "js".
+    - overlap_required bool:  If  two columns don't have non-null overlap,
+                              throw error
 
     Returns:
         A dict with a distance metric and both columns names
@@ -160,12 +171,20 @@ def bivariate_distance(
             )
         0.5
     """
-    ps_a = normalize_count_bivariate(column_a_1, column_a_2)
-    ps_b = normalize_count_bivariate(column_b_1, column_b_2)
-    return _distance_from_maps(ps_a, ps_b, distance_metric)
+    ps_a = normalize_count_bivariate(
+        column_a_1, column_a_2, overlap_required=overlap_required
+    )
+    ps_b = normalize_count_bivariate(
+        column_b_1, column_b_2, overlap_required=overlap_required
+    )
+    return _distance_from_maps(
+        ps_a, ps_b, distance_metric, overlap_required=overlap_required
+    )
 
 
-def bivariate_distances_in_data(df_a, df_b, distance_metric="tvd"):
+def bivariate_distances_in_data(
+    df_a, df_b, distance_metric="tvd", overlap_required=True
+):
     """
     Take two dataframes, create all pairs categorical columns.  For each pair,
     compute a probability vector of all possible events for this pair.
@@ -177,7 +196,8 @@ def bivariate_distances_in_data(df_a, df_b, distance_metric="tvd"):
     - df_b:  Polars Dataframe
     - distance_metric (str): Choose a distance metric. One of
                               "tvd", "kl", "js".
-
+    - overlap_required bool:  If  two columns don't have non-null overlap,
+                              throw error
 
     Returns:
         A Polars Dataframe with two columns ("column-1", "column-2")
@@ -201,7 +221,11 @@ def bivariate_distances_in_data(df_a, df_b, distance_metric="tvd"):
 
     def _row(column_1, column_2):
         d = bivariate_distance(
-            df_a[column_1], df_a[column_2], df_b[column_1], df_b[column_2]
+            df_a[column_1],
+            df_a[column_2],
+            df_b[column_1],
+            df_b[column_2],
+            overlap_required=overlap_required,
         )
         return {"column-1": column_1, "column-2": column_2, distance_metric: d}
 

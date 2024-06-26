@@ -141,6 +141,45 @@ def test_bivariate_distance_spot():
     )
 
 
+def test_bivariate_distance_no_overlap_exception():
+    with pytest.raises(AssertionError) as exc_info:
+        bivariate_distance(
+            pl.Series("foo", ["a", "a", None, None]),
+            pl.Series("bar", [None, None, "y", "y"]),
+            pl.Series("foo", ["a", "a", "a", "b"]),
+            pl.Series("bar", ["x", "x", "x", "y"]),
+            distance_metric="tvd",
+        )
+    assert exc_info.type == AssertionError
+
+
+def test_bivariate_distance_no_overlap_no_exception():
+    assert (
+        bivariate_distance(
+            pl.Series("foo", ["a", "a", None, None]),
+            pl.Series("bar", [None, None, "y", "y"]),
+            pl.Series("foo", ["a", "a", "a", "b"]),
+            pl.Series("bar", ["x", "x", "x", "y"]),
+            distance_metric="tvd",
+            overlap_required=False,
+        )
+        == None
+    )
+
+
+def test_bivariate_distance_no_overlap_spot():
+    assert (
+        bivariate_distance(
+            pl.Series("foo", ["a", "a", "b", "b"]),
+            pl.Series("bar", ["x", "x", "y", "y"]),
+            pl.Series("foo", ["a", "a", "a", "b"]),
+            pl.Series("bar", ["x", "x", "x", "y"]),
+            distance_metric="tvd",
+            overlap_required=False,
+        )
+        == 0.25
+    )
+
 @pytest.mark.parametrize("distance_metric", ["tvd", "kl", "js"])
 def test_bivariate_distances_in_data_smoke(distance_metric):
     df = pl.DataFrame(
